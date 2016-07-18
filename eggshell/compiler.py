@@ -12,6 +12,7 @@ from token import NAME, OP, STRING, ENDMARKER, INDENT, DEDENT
 GLOBCHARS = set('[]*?')
 WORD = re.compile('[\'|"()\s]')
 CLOSE_REGEX = set('\n|):,+-*/%@!=[]{}')
+REGEX_OPTS = re.compile(r'=~(s|m|split) /')
 
 
 def str2tok(string):
@@ -166,17 +167,22 @@ class Compiler:
 
 
     def _pipe(self, closer):
-        "Similar to Compiler._newline, but for things following a pipe."
+        """Similar to Compiler._newline, but for things following a pipe. In
+        keeping with eggshell's policy of doing as little as possible in the
+        compiler, the only thing this does is instantiate some special classes
+        that overload the `|` operator
+        """
         t = next(self.tokens)
         t = self._eatwhitespace(t)
         if self._isexecutable(t, closer):
-            # determines the runtime function to use based on context.
+            # determines the runtime function (or class) to use based on context.
             if closer == '\n' and self._grab_or_not(t) == RUNPROC:
                 function = PIPE
             else:
                 function = CAPTUREPIPE
             self._makeproc(t, closer, function)
-        elif t.string in 'sm':
+
+        elif t.string in {'s', 'm', 'split'}:
             self.extendtok([t[:2]])
             self._regex_gen(t)
 
@@ -192,6 +198,7 @@ class Compiler:
 
 
     def _isexecutable(self, t, closer):
+        "check if the next bit of line looks like an executable"
         word = t.line[t.start[1]:].split(maxsplit=1)
         word = word[0] if word else ''
         word = word.split(closer, maxsplit=1)[0]
@@ -200,18 +207,29 @@ class Compiler:
 
 
     def _makeproc(self, t, closer, function):
-        # does not consume the closing character
+        """This is where the magic happens. This is where lines that look like
+        shell commands get stuck in the right constructs (depending on context)
+        to make the execute (more or less) like shell commands. However, these
+        commands are never actually given a shell. eggshell makes an effort to
+        be safe.
+        """
         self.extendtok(function)
+        # does not consume the closing character. Closing characters are
+        # characters that will mark the end of a shell command.
         closers = {closer, '|', '\n'}
         start = t.start[1]
 
+        # iterate until we see that the next token will be a closing character
         while t.line[t.end[1]:].lstrip(' ')[0:1] not in closers:
             t = next(self.tokens)
 
+            # what to do for unquoted arguments
             if t.type != STRING and t.string != '(':
                 word = WORD.split(t.line[t.start[1]:], maxsplit=1)[0]
                 word = os.path.expanduser(word)
 
+                # if there are glob characters in the argument, glob 'em. This
+                # happens at runtime. We just generate the function call here.
                 if GLOBCHARS & set(word):
                     self.extendtok(str2tok(
                                 '{} +_globarg({})'.format(
@@ -231,7 +249,8 @@ class Compiler:
                 else:
                     while t.end[1] < t.line.find(word) + len(word):
                         t = next(self.tokens)
-
+            # expand expressions in parentheses. Look at eggshell._obj2args for
+            # more info.
             elif t.string == '(':
                 self.extendtok(
                     str2tok('%s+_obj2args(' % repr(t.line[start:t.start[1]])))
@@ -245,11 +264,15 @@ class Compiler:
                     return
 
                 start = t.start[1] + 1
+        # close up the command function
         self.extendtok(str2tok(
             '%s)' % repr(t.line[start:t.end[1]])))
 
 
     def _grab_or_not(self, t):
+        """figure out whether to just run a command, or whether to keep its
+        output
+        """
         parens = 0
         for c in t.line[t.start[1]:]:
             if c == '(':
@@ -262,9 +285,14 @@ class Compiler:
                 return CAPTUREPROC
         return RUNPROC
 
+
     def _regex_gen(self, t):
-        if t.line[t.end[1]:].lstrip(' ')[0:1] == '/' and t.string in 'sm':
-            maxslash = 2 if t.string == 'm' else 3
+        """generate the special, pre-compiled regex commands"""
+        # the complier does as little as possible -- but, it does compile regex
+        # before runtime where it can.
+        if (t.line[t.end[1]:].lstrip(' ')[0:1] == '/'
+            and t.string in {'m', 's', 'split'}):
+            maxslash = 3 if t.string == 's' else 2
             self.extendtok([next(self.tokens)])
             t = next(self.tokens)
             if t.type == STRING and t.line[t.end[1]:].lstrip(' ')[0:1] == '/':
@@ -311,8 +339,16 @@ class Compiler:
             elif regex:
                 self.regexen.append(re.compile(regex))
 
+
     def _regex_op(self):
-        self.output = re.sub(
-            r'=~[sm] /',
-            lambda m: '&= s/' if m.group(0)[-3] == 's' else '& m/',
-            self.output)
+        """change perl-like regex operator (not that it's technically a regex
+        oerpator in perl...) to some ops I overloaded for special regex objects
+        """
+        def subs(match):
+            sub = {
+                's': '&= s/',
+                'split': '&= split/',
+                'm': '& m/'}[match.group(1)]
+            return sub
+
+        self.output = REGEX_OPTS.sub(subs, self.output)
