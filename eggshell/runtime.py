@@ -1,23 +1,26 @@
 #!/usr/bin/env python3
 """
-eggshell builds the runtime environment for eggshell scripts, mostly through
+this module builds the runtime environment for eggshell scripts, mostly through
 importing a bunch of modules (especially items from easyproc) and some extra
 functions, classes and types.
+
+Then, it executes the code.
 """
 import fileinput as _fileinput
 import shlex as _shlex
 from glob import iglob as glob
 import os
 import re
-from easyproc import (grab, run, ProcOutput, CalledProcessError,
+from easyproc import (grab, run, Popen, ProcStream, CalledProcessError,
                       STDOUT, PIPE, DEVNULL)
-from compiler import Compiler as _Compiler
+from .compiler import Compiler as _Compiler
 import sys as _sys
+import io as _io
 
 ARGV = _sys.argv[1:]
 
 
-def _obj2args(obj):
+def obj2args(obj):
     """return a suitably quoted string from obj. If obj is a string, quote it
     as one arg. If it's an iterable, each item is a separately quoted arg.
     """
@@ -38,11 +41,11 @@ class GlobError(Exception):
         return 'No files matching %s.' % repr(self.string)
 
 
-def _globarg(string):
+def globarg(string):
     """takes a string with glob characters as input, returns a string with
     results as properly quoted args.
     """
-    matches = _obj2args(glob(string))
+    matches = obj2args(glob(string))
 
     if not matches:
         raise GlobError(string)
@@ -50,36 +53,47 @@ def _globarg(string):
     return matches
 
 
-class _Pipe():
+class Pipe():
     """Special object that holds onto a command and runs it when it sees the
     `|` operator, piping the return-value of the previous expression to stdin
     doesn't keep the output. Just an implementation detail of eggshell.
     """
     def __init__(self, cmd, **kwargs):
+        self. func = run
         self.cmd = cmd
         self.kwargs = kwargs
 
     def __ror__(self, stdin):
-        stdin = self._reslove(stdin)
-        return run(self.cmd, input=stdin, **self.kwargs)
+        self._reslove(stdin)
+        return self.func(self.cmd, **self.kwargs)
 
     def _reslove(self, stdin):
 
-        if not isinstance(stdin, (str, ProcOutput)):
-            return '\n'.join(stdin)
+        if isinstance(stdin, ProcStream):
+            self.kwargs['stdin'] = stdin.stream
 
-        return stdin
+        else:
+            try:
+                stdin.fileno()
+                self.kwargs['stdin'] = stdin
+            except (_io.UnsupportedOperation, AttributeError):
+
+                if not isinstance(stdin, str):
+                    stdin = '\n'.join(stdin)
+
+                self.kwargs['input'] = stdin
 
 
-class _GrabPipe(_Pipe):
-    "Same as eggshell._Pipe, but stdout is returned."
-    def __ror__(self, stdin):
-        stdin = self._reslove(stdin)
-        return grab(self.cmd, input=stdin, **self.kwargs)
+class GrabPipe(Pipe):
+    "Same as eggshell.Pipe, but stdout is returned."
+    def __init__(self, cmd, **kwargs):
+        self.func = grab
+        self.cmd = cmd
+        self.kwargs = kwargs
 
 
-class RegexStarter:
-    """RegexStarter is initialized with a subclass of RegexOp. When it sees the
+class _RegexStarter:
+    """_RegexStarter is initialized with a subclass of _RegexOp. When it sees the
     `/` operator, it returns a new instance of that class with the string
     following the `/` as pattern. This is how eggshell "regex operators", 'm',
     's', and 'split' are implemented.
@@ -93,16 +107,16 @@ class RegexStarter:
     def __repr__(self):
         string = str(self.Class)
         string = string[string.find('.')+1:-2]
-        return 'RegexStarter(%s)' % string
+        return '_RegexStarter(%s)' % string
 
 
-class RegexOp:
+class _RegexOp:
     "base-class for the three 'real' regex operators"
     def __init__(self, pattern):
         self.pattern = pattern
 
 
-class _Substituter(RegexOp):
+class _Substituter(_RegexOp):
     '''acts a bit like `s` in sed or perl, but not. If you put it on the right
     side of &= with a string on the left, it replaces everything in the string.
     pipe an iterable into it, and it returns a iterator that yeilds each item
@@ -130,7 +144,7 @@ class _Substituter(RegexOp):
         return map(self.__rand__, iterable)
 
 
-class _Matcher(RegexOp):
+class _Matcher(_RegexOp):
     """acts a bit like /PATTERN/ in perl (and awk), or like grep if you pipe an
     iterable into it. If you put it on the right side of & with a string on the
     right, it returns a match object (if there is a match). This can be used as
@@ -156,7 +170,7 @@ class _Matcher(RegexOp):
         return filter(self.__rand__, iterable)
 
 
-class _Splitter(RegexOp):
+class _Splitter(_RegexOp):
     """this is a bit like the split function in perl with &=, and a bit like
     awk -F with a iterable piped in.
     """
@@ -172,7 +186,7 @@ class _Splitter(RegexOp):
     def __ror__(self, iterable):
         return map(self.__rand__, iterable)
 
-class _SplitStart(RegexStarter):
+class _SplitStart(_RegexStarter):
     """add some extra functions to the split-starter so you can pipe objects
     into without specifying a regex. This is more or less like awk.
     """
@@ -183,9 +197,8 @@ class _SplitStart(RegexStarter):
         return map(str.split, iterable)
 
 
-
-s = RegexStarter(_Substituter)
-m = RegexStarter(_Matcher)
+s = _RegexStarter(_Substituter)
+m = _RegexStarter(_Matcher)
 split = _SplitStart(_Splitter)
 
 
@@ -209,4 +222,4 @@ def _main():
 
 
 if __name__ == '__main__':
-    _main()
+    main()

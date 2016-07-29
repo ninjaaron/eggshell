@@ -35,8 +35,8 @@ def str2tok(string):
 # execution environment.
 RUNPROC = str2tok('run(')
 CAPTUREPROC = str2tok('grab(')
-PIPE = str2tok('_Pipe(')
-CAPTUREPIPE = str2tok('_GrabPipe(')
+PIPE = str2tok('Pipe(')
+CAPTUREPIPE = str2tok('GrabPipe(')
 
 
 class Compiler:
@@ -232,7 +232,7 @@ class Compiler:
                 # happens at runtime. We just generate the function call here.
                 if GLOBCHARS & set(word):
                     self.extendtok(str2tok(
-                                '{} +_globarg({})'.format(
+                                '{}+globarg({})'.format(
                                 repr(t.line[start:t.start[1]]), repr(word))))
 
                     if t.line[t.end[1]] not in closers:
@@ -249,11 +249,11 @@ class Compiler:
                 else:
                     while t.end[1] < t.line.find(word) + len(word):
                         t = next(self.tokens)
-            # expand expressions in parentheses. Look at eggshell._obj2args for
+            # expand expressions in parentheses. Look at eggshell.obj2args for
             # more info.
             elif t.string == '(':
                 self.extendtok(
-                    str2tok('%s+_obj2args(' % repr(t.line[start:t.start[1]])))
+                    str2tok('%s+obj2args(' % repr(t.line[start:t.start[1]])))
                 t = self._parentheses()
 
                 if t.line[t.end[1]] not in closers:
