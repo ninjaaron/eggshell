@@ -1,4 +1,11 @@
-from setuptools import setup, find_packages
+from setuptools import setup
+try:
+    import fastentrypoints
+except ImportError:
+    from urllib import request
+    fastep = request.urlopen('https://raw.githubusercontent.com/ninjaaron/fast-entry_points/master/fastentrypoints.py')
+    namespace = {}
+    exec(fastep.read(), namespace)
 
 setup(
     name='eggshell',

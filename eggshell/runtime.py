@@ -8,26 +8,56 @@ Then, it executes the code.
 """
 import fileinput as _fileinput
 import shlex as _shlex
-from glob import iglob as glob
+import glob
 import os
 import re
 from easyproc import (grab, run, Popen, ProcStream, CalledProcessError,
-                      STDOUT, PIPE, DEVNULL)
+                      STDOUT, PIPE, DEVNULL, ALL)
 from .compiler import Compiler as _Compiler
 import sys as _sys
 import io as _io
+_sys.path.append('.')
 
 ARGV = _sys.argv[1:]
+
+_glob = glob.glob
+glob = glob.iglob
+
+
+class _EnvWrapper:
+    def __getattr__(self, name):
+        return os.environ[name]
+
+    def __setattr__(self, name, value):
+        os.environ[name] = value
+
+
+env = _EnvWrapper()
+
+
+class _Redirector:
+    def __gt__(self, filename):
+        return open(filename, 'w')
+
+    def __rshift__(self, filename):
+        return open(filename, 'a')
+
+
+redirect = _Redirector()
 
 
 def obj2args(obj):
     """return a suitably quoted string from obj. If obj is a string, quote it
     as one arg. If it's an iterable, each item is a separately quoted arg.
     """
-    if isinstance(obj, str) and not isinstance(obj, ProcOutput):
-        return _shlex.quote(obj)
+    if isinstance(obj, list):
+        return obj
+    elif isinstance(obj, str):
+        return [obj]
+    elif isinstance(obj, ProcStream):
+        return list(obj.tuple)
     else:
-        return ' '.join(_shlex.quote(i) for i in obj)
+        return list(obj)
 
 
 class GlobError(Exception):
@@ -58,14 +88,18 @@ class Pipe():
     `|` operator, piping the return-value of the previous expression to stdin
     doesn't keep the output. Just an implementation detail of eggshell.
     """
-    def __init__(self, cmd, **kwargs):
-        self. func = run
+    def __init__(self, cmd, *args, **kwargs):
         self.cmd = cmd
+        self.args = args
         self.kwargs = kwargs
+        self._set_func()
+
+    def _set_func(self):
+        self.func = run
 
     def __ror__(self, stdin):
         self._reslove(stdin)
-        return self.func(self.cmd, **self.kwargs)
+        return self.func(self.cmd, *self.args, **self.kwargs)
 
     def _reslove(self, stdin):
 
@@ -85,11 +119,9 @@ class Pipe():
 
 
 class GrabPipe(Pipe):
-    "Same as eggshell.Pipe, but stdout is returned."
-    def __init__(self, cmd, **kwargs):
+    def _set_func(self):
         self.func = grab
-        self.cmd = cmd
-        self.kwargs = kwargs
+
 
 
 class _RegexStarter:
@@ -124,7 +156,8 @@ class _Substituter(_RegexOp):
     '''
     def __truediv__(self, argument):
         if hasattr(self, 'replacement'):
-            self.count = 0 if 'g' in argument else 1
+            if 'g' in argument:
+                self.count = 0
 
             if 'g' != argument:
                 argument = argument.replace('g', '')
@@ -132,6 +165,7 @@ class _Substituter(_RegexOp):
 
         else:
             self.replacement = argument
+            self.count = 1
 
         return self
 
@@ -141,6 +175,9 @@ class _Substituter(_RegexOp):
         return self.pattern.sub(self.replacement, string, self.count)
 
     def __ror__(self, iterable):
+        if isinstance(iterable, str):
+            return iterable & self
+
         return map(self.__rand__, iterable)
 
 
@@ -186,6 +223,7 @@ class _Splitter(_RegexOp):
     def __ror__(self, iterable):
         return map(self.__rand__, iterable)
 
+
 class _SplitStart(_RegexStarter):
     """add some extra functions to the split-starter so you can pipe objects
     into without specifying a regex. This is more or less like awk.
@@ -212,14 +250,15 @@ def cd(directory):
     return os.getcwd()
 
 
-def _main():
-    _code = _Compiler(open(_sys.argv[1], 'rb'))
-    try:
-        exec(_code.output)
-    except:
-        print(_code.output)
-        raise
+#def _main():
+_code = _Compiler(open(_sys.argv[1], 'rb'))
+try:
+    exec(_code.output)
+#    print(_code.output)
+except:
+    print(_code.output)
+    raise
 
 
-if __name__ == '__main__':
-    main()
+#if __name__ == '__main__':
+#    main()

@@ -1,1 +1,2 @@
-from .runtime import _main as main
+def main():
+    import eggshell.runtime

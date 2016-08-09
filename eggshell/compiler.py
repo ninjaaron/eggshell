@@ -2,17 +2,20 @@
 import os
 import io
 import re
-from keyword import kwlist
+import shlex
+import keyword
 import builtins
 from tokenize import tokenize, untokenize, TokenError
-from token import NAME, OP, STRING, ENDMARKER, INDENT, DEDENT
+from token import NAME, OP, STRING, NUMBER, ENDMARKER, INDENT, DEDENT
 
 # GLOBCHARS is used to detect if arguments for shell commands need to
 # be expanded. WORD is a regex to match the ends of args in a shell command
 GLOBCHARS = set('[]*?')
-WORD = re.compile('[\'|"()\s]')
+WORD = re.compile('[\'|,"()\s]')
+REDIR_FILE = re.compile(r'[\'|,"()\n]')
 CLOSE_REGEX = set('\n|):,+-*/%@!=[]{}')
 REGEX_OPTS = re.compile(r'=~(s|m|split) /')
+ARG_END = re.compile(r'[,\n|;]')
 
 
 def str2tok(string):
@@ -44,18 +47,18 @@ class Compiler:
     python from it by tokenizing it, examining the tokens, producing new
     tokens, and untokenizing.
     """
-
     def __init__(self, bytes_file_object):
         # We start by looking for all executables in PATH, so we'll know a
         # shell command when we see it.
-        _builtins = set(dir(builtins) + kwlist)
+        _builtins = set(dir(builtins) + keyword.kwlist)
         _builtins.discard('[')
         self.commands = set(i for path in os.environ['PATH'].split(os.pathsep)
                             for i in os.listdir(path)
                             if os.access(path+'/'+i, os.X_OK)
                             and i not in _builtins)
-
-        self.tokens = tokenize(bytes_file_object.readline)
+        self.source = bytes_file_object
+        self._unbind()
+        self.tokens = tokenize(self.source.readline)
         self.result = []
         self.regexen = []
         self._toplevel()
@@ -175,7 +178,7 @@ class Compiler:
         t = next(self.tokens)
         t = self._eatwhitespace(t)
         if self._isexecutable(t, closer):
-            # determines the runtime function (or class) to use based on context.
+            # determine runtime function (or class) to use based on context.
             if closer == '\n' and self._grab_or_not(t) == RUNPROC:
                 function = PIPE
             else:
@@ -185,6 +188,8 @@ class Compiler:
         elif t.string in {'s', 'm', 'split'}:
             self.extendtok([t[:2]])
             self._regex_gen(t)
+        else:
+            self.extendtok([t[:2]])
 
 
     def _eatwhitespace(self, t):
@@ -203,7 +208,44 @@ class Compiler:
         word = word[0] if word else ''
         word = word.split(closer, maxsplit=1)[0]
         word = word = word.split('|', maxsplit=1)[0]
-        return word in self.commands and t.line[t.start[1]:]
+        word = word = word.split(',', maxsplit=1)[0]
+        return (word in self.commands
+                or ('/' in word and os.access(word, os.X_OK))
+                ) # and t.line[t.start[1]:]
+
+
+    def _add_args(self, closer):
+        closers = {closer, '|'}
+        t = next(self.tokens)
+        self.extendtok([t[:2]])
+        while self._next_char(t) not in closers:
+
+            if t.string == '(':
+                t = self._parentheses()
+
+            elif t.string in {'stdout', 'stderr'} \
+            and self._next_char(t) == '>':
+                self.extendtok(str2tok('=redirect'))
+                self.extendtok([next(self.tokens)])
+                t = next(self.tokens)
+
+                if t.type != STRING and t.type != NUMBER:
+                    word, longword, wordend = self._get_word(t, REDIR_FILE)
+
+                    self.extendtok(str2tok(repr(longword)))
+
+                    while t.end[1] < wordend:
+                        t = next(self.tokens)
+
+                else:
+                    self.extendtok([t[:2]])
+
+            else:
+                t = next(self.tokens)
+                self.extendtok([t[:2]])
+
+        ext = [(OP, ')')]
+        self.extendtok(ext)
 
 
     def _makeproc(self, t, closer, function):
@@ -220,40 +262,47 @@ class Compiler:
         start = t.start[1]
 
         # iterate until we see that the next token will be a closing character
-        while t.line[t.end[1]:].lstrip(' ')[0:1] not in closers:
+        while self._next_char(t) not in closers:
             t = next(self.tokens)
 
             # what to do for unquoted arguments
-            if t.type != STRING and t.string != '(':
-                word = WORD.split(t.line[t.start[1]:], maxsplit=1)[0]
-                word = os.path.expanduser(word)
+            if t.string == ',':
+                self.extendtok(str2tok('%s,' % 
+                            repr(shlex.split(t.line[start:t.start[1]]))))
+                self._add_args(closer)
+                return
+            elif t.type != STRING and t.string != '(':
+                word, longword, wordend = self._get_word(t)
 
                 # if there are glob characters in the argument, glob 'em. This
                 # happens at runtime. We just generate the function call here.
-                if GLOBCHARS & set(word):
+                if GLOBCHARS.intersection(word):
                     self.extendtok(str2tok(
-                                '{}+globarg({})'.format(
-                                repr(t.line[start:t.start[1]]), repr(word))))
-
-                    if t.line[t.end[1]] not in closers:
+                        '{}+_glob({})'.format(
+                        repr(shlex.split(t.line[start:t.start[1]])),
+                        repr(longword))))
+                    if t.line[t.start[1]+len(word)] not in closers:
                         self.extendtok([(OP, '+')])
                     else:
                         self.extendtok([(OP, ')')])
+                        while t.end[1] < wordend:
+                            t = next(self.tokens)
                         return
 
-                    while t.end[1] < t.line.find(word) + len(word):
+                    while t.end[1] < wordend:
                         t = next(self.tokens)
 
-                    start = t.start[1] + 1
+                    start = t.end[1]
 
                 else:
-                    while t.end[1] < t.line.find(word) + len(word):
+                    while t.end[1] < wordend:
                         t = next(self.tokens)
             # expand expressions in parentheses. Look at eggshell.obj2args for
             # more info.
             elif t.string == '(':
                 self.extendtok(
-                    str2tok('%s+obj2args(' % repr(t.line[start:t.start[1]])))
+                    str2tok('%s+obj2args(' %
+                        repr(shlex.split(t.line[start:t.start[1]]))))
                 t = self._parentheses()
 
                 if t.line[t.end[1]] not in closers:
@@ -264,24 +313,42 @@ class Compiler:
                     return
 
                 start = t.start[1] + 1
+
+            elif t.type == STRING:
+                part = '{}+[{}]'.format \
+                      (repr(shlex.split(t.line[start:t.start[1]])), t.string)
+                self.extendtok(str2tok(part))
+
+                # This crazy crap is how you find the letter after a multi-line
+                # token (i.e., a triple-quoted string with literal newlines).
+                if t.line[t.start[1]+len(t.string):] not in closers:
+                    self.extendtok([(OP, '+')])
+
+                else:
+                    self.extendtok([(OP, ')')])
+                    return
+
+                start = t.end[1]
+
         # close up the command function
-        self.extendtok(str2tok(
-            '%s)' % repr(t.line[start:t.end[1]])))
+        self.extendtok(str2tok('%s)' %
+            repr(shlex.split(t.line[start:t.end[1]]))))
 
 
     def _grab_or_not(self, t):
         """figure out whether to just run a command, or whether to keep its
         output
         """
+        tokens = str2tok(t.line[t.start[1]:])
         parens = 0
-        for c in t.line[t.start[1]:]:
-            if c == '(':
+        for tok in (tok.string for tok in tokens):
+            if tok == '(':
                 parens += 1
 
-            elif c == ')':
+            elif tok == ')':
                 parens -= 1
 
-            elif c == '|' and parens >= 0:
+            elif tok == '|' and parens >= 0:
                 return CAPTUREPROC
         return RUNPROC
 
@@ -290,12 +357,12 @@ class Compiler:
         """generate the special, pre-compiled regex commands"""
         # the complier does as little as possible -- but, it does compile regex
         # before runtime where it can.
-        if (t.line[t.end[1]:].lstrip(' ')[0:1] == '/'
+        if (self._next_char(t) == '/'
             and t.string in {'m', 's', 'split'}):
             maxslash = 3 if t.string == 's' else 2
             self.extendtok([next(self.tokens)])
             t = next(self.tokens)
-            if t.type == STRING and t.line[t.end[1]:].lstrip(' ')[0:1] == '/':
+            if t.type == STRING and self._next_char(t) == '/':
                 self.extendtok(str2tok(
                     '_code.regexen[%d]' % len(self.regexen)
                     ))
@@ -320,7 +387,7 @@ class Compiler:
                 if t.string == '(':
                     self._parentheses()
 
-            if t.line[t.end[1]:].lstrip(' ')[0:1] not in CLOSE_REGEX:
+            if self._next_char(t) not in CLOSE_REGEX:
                 t = next(self.tokens)
 
                 if regex:
@@ -352,3 +419,25 @@ class Compiler:
             return sub
 
         self.output = REGEX_OPTS.sub(subs, self.output)
+
+
+    def _unbind(self):
+        source = self.source.read()
+        unbind = re.compile(br'unbind\s')
+
+        for line in source.splitlines():
+            if unbind.match(line):
+                for name in line.split()[1:]:
+                    self.commands.discard(name.decode())
+
+        source = re.sub(br'unbind\s.*?\n', b'', source)
+        self.source = io.BytesIO(source)
+
+    def _next_char(self, t):
+        return t.line[t.end[1]:].lstrip(' ')[0:1]
+
+    def _get_word(self, t, endpattern=WORD):
+        word = endpattern.split(t.line[t.start[1]:], maxsplit=1)[0]
+        longword = os.path.expanduser(word)
+        wordend = t.start[1] + len(word)
+        return (word, longword, wordend)
