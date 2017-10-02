@@ -1,6 +1,9 @@
 eggshell - Python for sys admins
 ================================
 
+Eggshell is undergoing a complete rewrite at the moment. This documents
+the old version.
+
 .. contents::
 
 eggshell is a non-interactive (for now) command shell that aims to be a
