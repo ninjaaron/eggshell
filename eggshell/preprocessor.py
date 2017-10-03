@@ -142,7 +142,7 @@ def process(segment, runfunc):
     if arg in builtin.REGISTERED:
         new_seg.append('builtin.{}('.format(segment.pop(0).string))
         i, args = gen_args(segment)
-        new_seg.extend(args)
+        new_seg.extend(args[:-1])
 
     elif arg in COMMANDS:
         new_seg.append(runfunc + '([')
@@ -279,7 +279,7 @@ def main():
     except:
         pprint(tree, indent=4)
         raise
-    print(code)
+    # print(code)
     del sys.argv[0]
 
     tf = tempfile.NamedTemporaryFile('w')
