@@ -16,7 +16,8 @@ setup(
     author='Aaron Christianson',
     author_email='ninjaaron@gmail.com',
     keywords='pipe shell',
-    install_requires='easyproc>=0.3.2',
-    entry_points={'console_scripts': ['eggshell = eggshell.compiler:main']},
+    install_requires='easyproc>=0.4.0',
+    entry_points={'console_scripts':
+        ['eggshell = eggshell.preprocessor:main']},
     packages = ['eggshell'],
     classifiers=['Programming Language :: Python'],)
