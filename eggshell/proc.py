@@ -6,8 +6,7 @@ from collections import abc
 
 
 class Popen(easyproc.Popen):
-    def __init__(self, cmd, *args, stdin=None,
-                 stdout=None, stderr=None, **kwargs):
+    def __init__(self, cmd, stdin=None, stdout=None, stderr=None, **kwargs):
         if isinstance(cmd, abc.Iterable) and not isinstance(cmd, str):
             new_cmd = []
             for i in cmd:
@@ -32,8 +31,8 @@ class Popen(easyproc.Popen):
             stderr = open(stdout, 'w')
             self.string2stderr = True
 
-        super().__init__(cmd, *args, stdin=stdin,
-                         stdout=stdout, stderr=stderr, **kwargs)
+        super().__init__(cmd, stdin=stdin, stdout=stdout,
+                         stderr=stderr, **kwargs)
 
     def wait(self, *args, **kwargs):
         val = super().wait(*args, **kwargs)
