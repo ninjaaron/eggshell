@@ -94,7 +94,8 @@
        fx="41.792053"
        fy="42.987537"
        r="5.4419937"
-       gradientUnits="userSpaceOnUse" />
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="translate(0.52916667)" />
   </defs>
   <sodipodi:namedview
      id="base"
@@ -179,11 +180,11 @@
          id="rect4643-3-5"
          d="M 177.9258,116.38711 62.581818,77.741024 C 52.796532,74.462458 21.083213,54.729678 24.757251,43.586112 28.431289,32.442547 65.495519,29.600255 76.110078,34.601128 129.60405,59.803925 152.82968,62.305463 191.18947,76.157629 c 11.0361,3.98526 17.15694,15.603011 13.4829,26.746581 -3.67403,11.14356 -15.62084,17.21058 -26.74657,13.4829 z"
          style="opacity:1;fill:url(#linearGradient5309);fill-opacity:1;stroke:none;stroke-width:0.62266839;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:3.73601028, 3.73601028;stroke-dashoffset:19.99370003;stroke-opacity:1" />
-      <ellipse
+      <circle
          id="path4727"
-         style="opacity:1;fill:url(#radialGradient4642);fill-opacity:1;stroke:none;stroke-width:0.87044483;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:5.22266898, 5.22266897999999991;stroke-dashoffset:19.99370003;stroke-opacity:1"
+         style="opacity:1;fill:url(#radialGradient4642);fill-opacity:1;stroke:none;stroke-width:0.87044483;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:5.22266898, 5.22266898;stroke-dashoffset:19.99370003;stroke-opacity:1"
          cy="42.987537"
-         cx="41.792053"
+         cx="42.32122"
          r="5.4419937" />
     </g>
   </g>
