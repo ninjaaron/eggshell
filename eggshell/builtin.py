@@ -63,6 +63,7 @@ def unpacker(args):
         else:
             yield from a
 
+
 def muddle(args, kwargs):
     args = iter(args)
     nargs, nkwargs = [], {}
@@ -80,5 +81,6 @@ def muddle(args, kwargs):
             nkwargs[key] = val
         else:
             nargs.append(arg)
+    nkwargs.update(kwargs)
     return nargs, nkwargs
 

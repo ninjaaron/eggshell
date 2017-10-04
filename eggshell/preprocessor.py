@@ -281,7 +281,7 @@ def main():
     except:
         pprint(tree, indent=4)
         raise
-    # print(code)
+    print(code)
     del sys.argv[0]
 
     tf = tempfile.NamedTemporaryFile('w')
