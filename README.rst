@@ -2,7 +2,7 @@ eggshell - Python for sys admins
 ================================
 
 .. image:: doc/eggshell.svg
-   :height: 300 px
+   :height: 225 px
 
 Eggshell is undergoing a complete rewrite at the moment. This documents
 the old version.
