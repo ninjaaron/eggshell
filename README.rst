@@ -1,3 +1,7 @@
+.. image:: doc/eggshell.svg
+   :height: 400 px
+   :align: center
+
 eggshell - Python for sys admins
 ================================
 
