@@ -1,15 +1,18 @@
 eggshell - Python for sys admins
 ================================
 
+.. image:: doc/badge.svg
+   :height: 225 px
+
 Eggshell is undergoing a complete rewrite at the moment. This documents
 the old version.
 
 .. contents::
 
-eggshell is a non-interactive (for now) command shell that aims to be a
-pure superset of Python (i.e. it should run any valid Python script --
-provided names in the script don't conflict with names of system
-commands).
+``eggshell`` is a non-interactive (for now) command shell that aims
+to be a pure superset of Python (i.e. it should run any valid Python
+script -- provided names in the script don't conflict with names of
+system commands).
 
 An eggshell script compiles to Python, which is then executed in the
 Python interpreter. The compiler itself aims to do as little as possible
