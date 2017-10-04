@@ -139,16 +139,17 @@ def process(segment, runfunc):
         return segment
 
     arg = get_arg(segment[0])
-    if arg in builtin.REGISTERED:
-        new_seg.append('builtin.{}('.format(segment.pop(0).string))
-        i, args = gen_args(segment)
-        new_seg.extend(args[:-1])
-
-    elif arg in COMMANDS:
+    if arg in COMMANDS:
         new_seg.append(runfunc + '([')
         i, args = gen_args(segment)
         new_seg.extend(args)
         new_seg.append(']')
+
+    elif arg in builtin.REGISTERED:
+        new_seg.append('builtin.{}('.format(segment.pop(0).string))
+        i, args = gen_args(segment)
+        new_seg.extend(args[:-1])
+
     else:
         return segment
 
@@ -161,6 +162,7 @@ def process(segment, runfunc):
 def gen_args(segment):
     args = []
     new_seg = []
+    i = -1
     for i, t in enumerate(segment[:-1]):
         if isinstance(t, list) or t.type == STRING:
             new_seg.extend(split_args(args))
