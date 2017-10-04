@@ -24,18 +24,6 @@
      id="defs2">
     <linearGradient
        inkscape:collect="always"
-       id="linearGradient4638">
-      <stop
-         style="stop-color:#fff3ba;stop-opacity:1"
-         offset="0"
-         id="stop4634" />
-      <stop
-         style="stop-color:#f7db4e;stop-opacity:1"
-         offset="1"
-         id="stop4636" />
-    </linearGradient>
-    <linearGradient
-       inkscape:collect="always"
        id="linearGradient4608">
       <stop
          style="stop-color:#548fd1;stop-opacity:1"
@@ -85,17 +73,6 @@
        y2="-134.13239"
        gradientUnits="userSpaceOnUse"
        gradientTransform="rotate(-161.75259,0.26458333,-0.04249167)" />
-    <radialGradient
-       inkscape:collect="always"
-       xlink:href="#linearGradient4638"
-       id="radialGradient4642"
-       cx="41.792053"
-       cy="42.987537"
-       fx="41.792053"
-       fy="42.987537"
-       r="5.4419937"
-       gradientUnits="userSpaceOnUse"
-       gradientTransform="translate(0.52916667)" />
   </defs>
   <sodipodi:namedview
      id="base"
@@ -104,9 +81,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.70710678"
-     inkscape:cx="574.01348"
-     inkscape:cy="603.38062"
+     inkscape:zoom="1.4142136"
+     inkscape:cx="441.14783"
+     inkscape:cy="881.755"
      inkscape:document-units="mm"
      inkscape:current-layer="g4924"
      showgrid="false"
@@ -182,7 +159,7 @@
          style="opacity:1;fill:url(#linearGradient5309);fill-opacity:1;stroke:none;stroke-width:0.62266839;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:3.73601028, 3.73601028;stroke-dashoffset:19.99370003;stroke-opacity:1" />
       <circle
          id="path4727"
-         style="opacity:1;fill:url(#radialGradient4642);fill-opacity:1;stroke:none;stroke-width:0.87044483;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:5.22266898, 5.22266898;stroke-dashoffset:19.99370003;stroke-opacity:1"
+         style="opacity:1;fill:#ffdf47;fill-opacity:1;stroke:none;stroke-width:0.87044483;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:5.22266898, 5.22266897999999991;stroke-dashoffset:19.99370003;stroke-opacity:1"
          cy="42.987537"
          cx="42.32122"
          r="5.4419937" />
