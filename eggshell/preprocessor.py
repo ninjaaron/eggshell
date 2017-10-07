@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-import os
 import io
+import os
 import re
 import sys
 import tokenize
@@ -13,7 +13,6 @@ PREAMBLE = '''\
 from eggshell.proc import run, grab, _PipeRun, Popen
 from eggshell.builtin import env, _dir_stack
 from eggshell import builtin
-from eggshell.rewrap import _Matcher, Subber
 from easyproc import CalledProcessError, PIPE, STDOUT, DEVNULL
 from glob import iglob as glob\n'''
 
@@ -152,7 +151,7 @@ def process(segment, runfunc):
         new_seg.extend(args[:-1])
 
     else:
-        return regex_scan(segment)
+        return segment
 
     if segment[i+1] is not segment[-1]:
         new_seg.extend(segment[i:-1])
@@ -246,27 +245,6 @@ def split_args(args):
         else:
             new_args.extend((arg, ','))
     return new_args
-
-
-def regex_scan(segment):
-    # segment = iter(segment)
-    # new_seg = []
-    # for t in segment:
-    #     if t.isinstance(list):
-    #         new_seg.append(t)
-    #         continue
-
-    #     remaining_line = 
-    #     elif t.line[t.start:t.start+2] == '=~':
-    #         next(t)
-    #         new_seg.append('&=')
-    #         new_seg.append(post_op_remake(segment, next(t)))
-    #         continue
-    #     else:
-    #         elements = rematch(t)
-    #         if elements is not None:
-    return segment
-
 
 
 def flatten(tree):
