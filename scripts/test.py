@@ -1,5 +1,5 @@
 #!/usr/bin/env eggshell
-shimport ls, grep, 
+shimport ls, grep
 
 reg = '\x1b[0;3%dm'
 bold = '\x1b[1;3%dm'
@@ -37,8 +37,8 @@ def globbing():
     cd ~
     echo src/*
 
-# nested_commands_and_pipes()
-# python_interpolation()
-# environment_variables()
-# redirection()
+nested_commands_and_pipes()
+python_interpolation()
+environment_variables()
+redirection()
 globbing()
