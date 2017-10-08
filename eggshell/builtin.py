@@ -1,4 +1,5 @@
 import os
+import pathlib
 from collections import abc
 REGISTERED = {}
 _dir_stack = []
@@ -53,19 +54,19 @@ def popd(directory):
 @register
 def echo(*args, **kwargs):
     nargs, nkwargs = muddle(args, kwargs)
-    print(*unpacker(nargs), **nkwargs)
+    print(*nargs, **nkwargs)
 
 
 def unpacker(args):
     for a in args:
-        if isinstance(a, (str, int)):
+        if isinstance(a, (str, int, pathlib.Path)):
             yield a
         else:
-            yield from a
+            yield from unpacker(a)
 
 
 def muddle(args, kwargs):
-    args = iter(args)
+    args = unpacker(args)
     nargs, nkwargs = [], {}
     for arg in args:
         if isinstance(arg, str) and arg.startswith('--'):

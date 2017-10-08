@@ -1,8 +1,10 @@
+import io
 import subprocess
 import easyproc
 from easyproc import run, grab
-import io
 from collections import abc
+from pathlib import Path
+from . import _Arg, _Globject
 
 
 class Popen(easyproc.Popen):
@@ -10,8 +12,8 @@ class Popen(easyproc.Popen):
         if isinstance(cmd, abc.Iterable) and not isinstance(cmd, str):
             new_cmd = []
             for i in cmd:
-                if isinstance(i, abc.Iterable) and not isinstance(i, str):
-                    new_cmd.extend(i)
+                if isinstance(i, (_Arg, _Globject)):
+                    new_cmd.extend(flatten(i))
                 else:
                     new_cmd.append(i)
             cmd = new_cmd
@@ -19,15 +21,15 @@ class Popen(easyproc.Popen):
         self.string2stdin = False
         self.string2stdout = False
         self.string2stderr = False
-        if isinstance(stdin, str):
+        if isinstance(stdin, (str, Path)):
             stdin = open(stdin)
             self.string2stdin = True
 
-        if isinstance(stdout, str):
+        if isinstance(stdout, (str, Path)):
             stdout = open(stdout, 'w')
             self.string2stdout = True
 
-        if isinstance(stderr, str):
+        if isinstance(stderr, (str, Path)):
             stderr = open(stdout, 'w')
             self.string2stderr = True
 
@@ -91,3 +93,16 @@ class _PipeRun:
 
 easyproc.ProcStream = ProcStream
 easyproc.Popen = Popen
+
+
+def flatter(i):
+    l = list(flatten(i))
+    print(l)
+    return l
+
+def flatten(iterable):
+    for i in iterable:
+        if isinstance(i, abc.Iterable) and not isinstance(i, str):
+            yield from flatten(i)
+        else:
+            yield i

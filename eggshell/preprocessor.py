@@ -12,9 +12,9 @@ COMMANDS = set()
 PREAMBLE = '''\
 from eggshell.proc import run, grab, _PipeRun, Popen
 from eggshell.builtin import env, _dir_stack
-from eggshell import builtin
+from eggshell import builtin, _Globject, _Arg
 from easyproc import CalledProcessError, PIPE, STDOUT, DEVNULL
-from glob import iglob as glob\n'''
+'''
 
 
 class Tokens(abc.Iterator):
@@ -171,7 +171,7 @@ def gen_args(segment):
                 del new_seg[-1] # comma
             except IndexError:
                 start = ''
-            new_seg.extend((start, t, end))
+            new_seg.extend((start, '_Arg(',  t, ')', end))
 
         elif t.type == NL:
             new_seg.extend(split_args(args))
@@ -240,7 +240,7 @@ def split_args(args):
             arg = repr(arg)
 
         if '*' in arg:
-            new_args.extend(('glob({}, recursive=True)'.format(arg),
+            new_args.extend(('_Globject({})'.format(arg),
                              ','))
         else:
             new_args.extend((arg, ','))
@@ -280,7 +280,7 @@ def main():
     except:
         pprint(tree, indent=4)
         raise
-    print(code)
+    # print(code)
     del sys.argv[0]
 
     tf = tempfile.NamedTemporaryFile('w')
