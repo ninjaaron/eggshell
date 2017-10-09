@@ -14,7 +14,6 @@ from eggshell.proc import _PipeRun, Popen
 from eggshell.builtin import env, _dir_stack
 from eggshell import builtin, _Globject, _Arg, glob
 from easyproc import run, grab, CalledProcessError, PIPE, STDOUT, DEVNULL
-from pathlib import Path
 '''
 
 
