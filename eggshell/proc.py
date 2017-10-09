@@ -4,7 +4,6 @@ import easyproc
 from collections import abc
 from pathlib import Path
 from . import _Arg, _Globject
-from easyproc import run, grab
 
 
 class Popen(easyproc.Popen):

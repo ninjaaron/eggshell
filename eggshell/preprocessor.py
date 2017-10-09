@@ -7,13 +7,14 @@ import tokenize
 from . import builtin
 from collections import abc
 from pprint import pprint
-from tokenize import NEWLINE, NL, NAME, STRING, COMMENT, INDENT, DEDENT
+from tokenize import NEWLINE, NL, STRING, COMMENT, INDENT, DEDENT
 COMMANDS = set()
 PREAMBLE = '''\
-from eggshell.proc import run, grab, _PipeRun, Popen
+from eggshell.proc import _PipeRun, Popen
 from eggshell.builtin import env, _dir_stack
-from eggshell import builtin, _Globject, _Arg
-from easyproc import CalledProcessError, PIPE, STDOUT, DEVNULL
+from eggshell import builtin, _Globject, _Arg, glob
+from easyproc import run, grab, CalledProcessError, PIPE, STDOUT, DEVNULL
+from pathlib import Path
 '''
 
 
