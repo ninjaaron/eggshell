@@ -4,7 +4,7 @@ from collections import abc
 
 
 def glob(pattern, recursive=True):
-    return Globject(pattern, recursive=recursive)
+    return map(pathlib.Path, _glob.iglob(pattern, recursive=recursive))
 
 
 class _Arg(abc.Iterable):
@@ -20,10 +20,12 @@ class _Arg(abc.Iterable):
             yield str(self.data)
 
     def __add__(self, other):
-        return _Arg((str(i) if isinstance(i, int) else i) + other for i in self)
+        return _Arg((str(i) if isinstance(i, int) else i) + other
+                    for i in self)
 
     def __radd__(self, other):
-        return _Arg(other + (str(i) if isinstance(i, int) else i) for i in self)
+        return _Arg(other + (str(i) if isinstance(i, int) else i)
+                    for i in self)
 
 
 class _Globject:
@@ -38,7 +40,7 @@ class _Globject:
         return 'Globject({!r}, recursive={!r})'.format(self.pattern, self.rec)
 
     def __add__(self, other):
-        if isinstance(other, (str, pathlib.Path, Globject)):
+        if isinstance(other, (str, pathlib.Path, _Globject)):
             self.pattern += str(other)
             return self
         else:
@@ -52,4 +54,4 @@ class _Globject:
             return NotImplemented
 
     def __iter__(self):
-        return map(pathlib.Path, _glob.iglob(self.pattern, recursive=self.rec))
+        return _glob.iglob(self.pattern, recursive=self.rec)

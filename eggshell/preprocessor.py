@@ -274,13 +274,24 @@ def maketok(string):
 
 def main():
     import tempfile
-    tree = maketree(Tokens(sys.argv[1]))
+    if sys.argv[1] == '-p':
+        file = sys.argv[2]
+        print_script = True
+        tree = maketree(Tokens(file), preamble=True)
+    else:
+        file = sys.argv[1]
+        print_script = False
+        tree = maketree(Tokens(file))
+
     try:
         code = tokenize.untokenize(flatten(tree)).decode()
     except:
         pprint(tree, indent=4)
         raise
-    # print(code)
+    if print_script:
+        print(code)
+        sys.exit()
+
     del sys.argv[0]
 
     tf = tempfile.NamedTemporaryFile('w')
