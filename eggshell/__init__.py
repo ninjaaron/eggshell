@@ -11,6 +11,9 @@ class _Arg(abc.Iterable):
     def __init__(self, data):
         self.data = data
 
+    def __repr__(self):
+        return "_Arg(%r)" % self.data
+
     def __iter__(self):
         if isinstance(self.data, str):
             yield self.data
