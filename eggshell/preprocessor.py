@@ -56,7 +56,6 @@ def maketree(tokens, preamble=False):
     tree = []
     # encoding string
     tree.append([next(tokens)])
-    # if preamble:
     if preamble:
         tok = next(tokens)
         while tok.type in {COMMENT, NL, STRING}:
