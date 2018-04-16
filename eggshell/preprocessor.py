@@ -7,13 +7,13 @@ import tokenize
 from . import builtin
 from collections import abc
 from pprint import pprint
-from tokenize import NEWLINE, NL, NAME, STRING, COMMENT, INDENT, DEDENT
+from tokenize import NEWLINE, NL, STRING, COMMENT, INDENT, DEDENT
 COMMANDS = set()
 PREAMBLE = '''\
-from eggshell.proc import run, grab, _PipeRun, Popen
+from eggshell.proc import _PipeRun, Popen
 from eggshell.builtin import env, _dir_stack
-from eggshell import builtin, _Globject, _Arg
-from easyproc import CalledProcessError, PIPE, STDOUT, DEVNULL
+from eggshell import builtin, _Globject, _Arg, glob
+from easyproc import run, grab, CalledProcessError, PIPE, STDOUT, DEVNULL
 '''
 
 
@@ -273,13 +273,24 @@ def maketok(string):
 
 def main():
     import tempfile
-    tree = maketree(Tokens(sys.argv[1]))
+    if sys.argv[1] == '-p':
+        file = sys.argv[2]
+        print_script = True
+        tree = maketree(Tokens(file), preamble=True)
+    else:
+        file = sys.argv[1]
+        print_script = False
+        tree = maketree(Tokens(file))
+
     try:
         code = tokenize.untokenize(flatten(tree)).decode()
     except:
         pprint(tree, indent=4)
         raise
-    # print(code)
+    if print_script:
+        print(code)
+        sys.exit()
+
     del sys.argv[0]
 
     tf = tempfile.NamedTemporaryFile('w')

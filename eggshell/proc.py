@@ -1,7 +1,6 @@
 import io
 import subprocess
 import easyproc
-from easyproc import run, grab
 from collections import abc
 from pathlib import Path
 from . import _Arg, _Globject
@@ -46,7 +45,7 @@ class Popen(easyproc.Popen):
             self.stderr.close()
         return val
 
-    
+
 class ProcStream(easyproc.ProcStream):
     def __or__(self, other):
         if isinstance(other, easyproc.ProcStream):
@@ -82,6 +81,7 @@ class ProcStream(easyproc.ProcStream):
 
 class _PipeRun:
     func = staticmethod(easyproc.run)
+
     def __init__(self, *args, **kwargs):
         self.args = args
         self.kwargs = kwargs
@@ -99,6 +99,7 @@ def flatter(i):
     l = list(flatten(i))
     print(l)
     return l
+
 
 def flatten(iterable):
     for i in iterable:
