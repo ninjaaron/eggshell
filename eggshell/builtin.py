@@ -1,6 +1,5 @@
 import os
 import pathlib
-from collections import abc
 REGISTERED = {}
 _dir_stack = []
 VALUES = {
@@ -50,6 +49,7 @@ def pushd(directory):
 @register
 def popd(directory):
     return cd(_dir_stack.pop())
+
 
 @register
 def echo(*args, **kwargs):
